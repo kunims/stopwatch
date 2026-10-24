@@ -47,7 +47,7 @@
   /* ---------- 시계 ---------- */
   .watch-wrap {
     width: min(70vw, 280px);
-    margin: 22% 0 18%;
+    margin: calc(10% + 3mm) 0 18%;
     position: relative;
   }
   .strap {
@@ -145,6 +145,8 @@
 
   /* ---------- 디지털 표시 & 버튼 ---------- */
   .digital {
+    position: relative;
+    z-index: 1;
     font-size: clamp(36px, 11vw, 52px);
     font-weight: 200;
     letter-spacing: 1px;
