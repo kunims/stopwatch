@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ultra Thin Moon Stopwatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e9e9e9;
+    --text: #2b2b2b;
+    --muted: #8a8a8a;
+    --line: #d0d0d0;
+    --btn: #d6d6d6;
+    --btn-text: #2b2b2b;
+    --btn-main: #4a4a4a;
+    --btn-main-text: #f2f2f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161616;
+      --text: #e6e6e6;
+      --muted: #7d7d7d;
+      --line: #2e2e2e;
+      --btn: #2f2f2f;
+      --btn-text: #e0e0e0;
+      --btn-main: #cfcfcf;
+      --btn-main-text: #1a1a1a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Helvetica Neue", "Segoe UI", "Malgun Gothic", sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ---------- 시계 ---------- */
+  .watch-wrap {
+    width: min(70vw, 280px);
+    margin: 22% 0 18%;
+    position: relative;
+  }
+  .strap {
+    position: absolute;
+    left: 31%;
+    width: 38%;
+    height: 34%;
+    /* 앨리게이터 비늘 무늬는 JS에서 SVG로 생성 */
+    background-color: #2e1d13;
+    background-size: 100% 100%, 100% auto;
+    background-repeat: no-repeat, repeat-y;
+    border-radius: 6px;
+  }
+  .strap.top {
+    top: -26%;
+    -webkit-mask-image: linear-gradient(to top, #000 55%, transparent);
+            mask-image: linear-gradient(to top, #000 55%, transparent);
+  }
+  .strap.bottom {
+    bottom: -26%;
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+            mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  }
+  .lug {
+    position: absolute;
+    width: 7%;
+    height: 22%;
+    background: linear-gradient(90deg, #8d8d8d, #efefef 45%, #a8a8a8 70%, #7a7a7a);
+    border-radius: 40% 40% 30% 30%;
+    box-shadow: 0 2px 4px rgba(0,0,0,.25);
+  }
+  .lug.tl { left: 26%; top: -8%; }
+  .lug.tr { right: 26%; top: -8%; }
+  .lug.bl { left: 26%; bottom: -8%; }
+  .lug.br { right: 26%; bottom: -8%; }
+
+  .watch {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+  }
+  .crown {
+    position: absolute;
+    right: -3.2%;
+    top: 46%;
+    width: 5%;
+    height: 8%;
+    border-radius: 3px;
+    background: repeating-linear-gradient(180deg, #bdbdbd 0 2px, #8e8e8e 2px 3px);
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    cursor: pointer;
+    border: none;
+    padding: 0;
+  }
+  .crown:active { transform: translateX(-2px); }
+  .case {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 210deg, #f2f2f2, #9a9a9a 18%, #e6e6e6 35%, #8c8c8c 52%, #f4f4f4 68%, #a2a2a2 85%, #f2f2f2);
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.28),
+      0 3px 6px rgba(0,0,0,.2),
+      inset 0 0 0 1px rgba(255,255,255,.6);
+  }
+  .bezel {
+    position: absolute;
+    inset: 4%;
+    border-radius: 50%;
+    background: linear-gradient(160deg, #fafafa, #a6a6a6 50%, #e3e3e3);
+  }
+  .dial {
+    position: absolute;
+    inset: 7.5%;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,255,255,.35), rgba(255,255,255,0) 65%),
+      repeating-conic-gradient(rgba(255,255,255,.09) 0deg 1deg, rgba(0,0,0,.05) 1deg 2deg),
+      conic-gradient(from 40deg, #e8e8e8, #b3b3b3 25%, #e4e4e4 50%, #afafaf 75%, #e8e8e8);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.18);
+  }
+  .glass {
+    position: absolute;
+    inset: 7.5%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,.28), rgba(255,255,255,0) 40%);
+    pointer-events: none;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ---------- 디지털 표시 & 버튼 ---------- */
+  .digital {
+    font-size: clamp(36px, 11vw, 52px);
+    font-weight: 200;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+    margin: 20px 0 0;
+  }
+  .digital .cs { color: var(--muted); }
+  .buttons {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 380px;
+  }
+  button.ctl {
+    flex: 1;
+    height: 48px;
+    border-radius: 24px;
+    border: none;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: var(--btn);
+    color: var(--btn-text);
+    transition: transform .08s, opacity .2s;
+  }
+  button.ctl:active { transform: scale(.96); }
+  button.ctl:disabled { opacity: .4; cursor: default; }
+  #startBtn { background: var(--btn-main); color: var(--btn-main-text); }
+
+  .laps {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 0;
+    width: 100%;
+    max-width: 380px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .laps li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 11px 4px;
+    border-top: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  .laps .tag {
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-left: 8px;
+  }
+  .laps li.best { font-weight: 600; }
+  .laps li.worst { color: var(--muted); }
+  .hint {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 18px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="buttons">
+    <button class="ctl" id="lapBtn" disabled>Lap</button>
+    <button class="ctl" id="startBtn">Start</button>
+    <button class="ctl" id="resetBtn" disabled>Reset</button>
+  </div>
+  <div class="digital" id="digital">00:00<span class="cs">.00</span></div>
+  <div class="watch-wrap">
+    <div class="strap top"></div>
+    <div class="strap bottom"></div>
+    <div class="lug tl"></div><div class="lug tr"></div>
+    <div class="lug bl"></div><div class="lug br"></div>
+
+    <div class="watch">
+      <button class="crown" id="crown" aria-label="Start / Stop"></button>
+      <div class="case"></div>
+      <div class="bezel"></div>
+      <div class="dial"></div>
+
+      <svg class="overlay" viewBox="0 0 400 400" aria-hidden="true">
+        <defs>
+          <linearGradient id="baton" x1="0" x2="1">
+            <stop offset="0" stop-color="#f7f7f7"/>
+            <stop offset=".5" stop-color="#cfcfcf"/>
+            <stop offset=".5" stop-color="#6a6a6a"/>
+            <stop offset="1" stop-color="#9a9a9a"/>
+          </linearGradient>
+          <radialGradient id="sky" cx=".5" cy=".5" r=".5">
+            <stop offset="0" stop-color="#5a5a5a"/>
+            <stop offset="1" stop-color="#2c2c2c"/>
+          </radialGradient>
+          <radialGradient id="moon" cx=".38" cy=".35" r=".7">
+            <stop offset="0" stop-color="#ffffff"/>
+            <stop offset=".6" stop-color="#d4d4d4"/>
+            <stop offset="1" stop-color="#9c9c9c"/>
+          </radialGradient>
+          <clipPath id="moonWindow">
+            <path d="M172 286 A28 28 0 0 1 228 286 A14 14 0 0 0 200 286 A14 14 0 0 0 172 286 Z"/>
+          </clipPath>
+        </defs>
+
+        <!-- 인덱스 / 분 트랙 (JS로 생성) -->
+        <g id="indices"></g>
+
+        <!-- 서브다이얼: 1/100초 + 문페이즈 -->
+        <circle cx="200" cy="282" r="50" fill="rgba(0,0,0,.035)" stroke="rgba(0,0,0,.18)" stroke-width=".8"/>
+        <g id="subTicks"></g>
+        <g clip-path="url(#moonWindow)">
+          <g id="moonDisc">
+            <circle cx="200" cy="302" r="42" fill="url(#sky)"/>
+            <circle cx="200" cy="275" r="11" fill="url(#moon)"/>
+            <circle cx="200" cy="329" r="11" fill="url(#moon)"/>
+            <g fill="#e6e6e6">
+              <circle cx="181" cy="282" r=".9"/><circle cx="222" cy="279" r="1.1"/>
+              <circle cx="214" cy="268" r=".7"/><circle cx="186" cy="268" r=".8"/>
+              <circle cx="176" cy="294" r=".7"/><circle cx="226" cy="296" r=".9"/>
+              <circle cx="219" cy="322" r=".8"/><circle cx="181" cy="318" r="1"/>
+              <circle cx="188" cy="336" r=".7"/><circle cx="214" cy="338" r=".8"/>
+            </g>
+          </g>
+        </g>
+        <path d="M172 286 A28 28 0 0 1 228 286 A14 14 0 0 0 200 286 A14 14 0 0 0 172 286 Z"
+              fill="none" stroke="#8a8a8a" stroke-width="1"/>
+
+        <!-- 다이얼 이름 (12시 아래) -->
+        <text x="200" y="108" text-anchor="middle" font-size="23"
+              fill="#3a3a3a" font-family="'Pinyon Script', 'Segoe Script', cursive">Kearney</text>
+
+        <!-- 날짜창 (3시 방향) -->
+        <rect x="299" y="190" width="24" height="20" rx="1.5" fill="#f4f4f4"
+              stroke="#8a8a8a" stroke-width="1.2"/>
+        <rect x="299" y="190" width="24" height="20" rx="1.5" fill="none"
+              stroke="rgba(0,0,0,.25)" stroke-width="3" opacity=".35"/>
+        <text id="dateText" x="311" y="204.5" text-anchor="middle" font-size="13"
+              fill="#2f2f2f" font-family="Helvetica Neue, Arial, sans-serif"></text>
+
+        <!-- 서브다이얼 포인터 -->
+        <g id="subHand">
+          <line x1="200" y1="288" x2="200" y2="244" stroke="#4a4a4a" stroke-width="1.2" stroke-linecap="round"/>
+          <polygon points="200,240 198.3,247 201.7,247" fill="#4a4a4a"/>
+          <circle cx="200" cy="282" r="2.6" fill="#5a5a5a"/>
+        </g>
+
+        <!-- 시침 -->
+        <g id="hourHand" filter="drop-shadow(0 1.5px 1.5px rgba(0,0,0,.35))">
+          <polygon points="200,108 195,190 200,214" fill="#f4f4f4"/>
+          <polygon points="200,108 205,190 200,214" fill="#7a7a7a"/>
+        </g>
+        <!-- 분침 -->
+        <g id="minuteHand" filter="drop-shadow(0 2px 2px rgba(0,0,0,.35))">
+          <polygon points="200,46 196,188 200,214" fill="#f4f4f4"/>
+          <polygon points="200,46 204,188 200,214" fill="#7a7a7a"/>
+        </g>
+        <!-- 초침 -->
+        <g id="secondHand" filter="drop-shadow(0 2px 1.5px rgba(0,0,0,.3))">
+          <line x1="200" y1="236" x2="200" y2="40" stroke="#3c3c3c" stroke-width="1.1" stroke-linecap="round"/>
+          <circle cx="200" cy="228" r="3.2" fill="#3c3c3c"/>
+        </g>
+        <circle cx="200" cy="200" r="5" fill="#bdbdbd" stroke="#6e6e6e" stroke-width=".8"/>
+        <circle cx="200" cy="200" r="1.6" fill="#5a5a5a"/>
+      </svg>
+      <div class="glass"></div>
+    </div>
+  </div>
+
+  <ul class="laps" id="laps"></ul>
+  <p class="hint">단축키: Space Start/Stop · L Lap · R Reset · 크라운을 눌러도 Start/Stop<br><a href="dashboard.html" style="color:inherit">기록 대시보드 →</a></p>
+
+<script>
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, parent) {
+    const node = document.createElementNS(NS, tag);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    parent.appendChild(node);
+    return node;
+  }
+
+  // 소가죽(카프) 스트랩: 매끈한 표면 + 미세한 가죽 결 + 가장자리 스티치
+  (function calfStrap() {
+    const H = 300;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="${H}" viewBox="0 0 100 ${H}">
+      <filter id="grain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.2 .9" numOctaves="3" seed="4" stitchTiles="stitch"/>
+        <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0"/>
+      </filter>
+      <rect width="100" height="${H}" fill="#3d2618"/>
+      <rect width="100" height="${H}" filter="url(#grain)" opacity=".35"/>
+      <g stroke="#8a6446" stroke-width=".9" stroke-dasharray="3.2 2.4" stroke-linecap="round">
+        <line x1="4.5" y1="0" x2="4.5" y2="${H}"/><line x1="95.5" y1="0" x2="95.5" y2="${H}"/>
+      </g></svg>`;
+    const shade = 'linear-gradient(90deg, rgba(0,0,0,.5), rgba(0,0,0,0) 12%, rgba(255,255,255,.07) 45%, rgba(255,255,255,.03) 55%, rgba(0,0,0,0) 88%, rgba(0,0,0,.55))';
+    document.querySelectorAll('.strap').forEach(s => {
+      s.style.backgroundImage = `${shade}, url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+    });
+  })();
+
+  // 아워 인덱스(6시 자리는 서브다이얼) + 분 트랙
+  const indices = document.getElementById('indices');
+  for (let h = 0; h < 12; h++) {
+    if (h === 6) continue;
+    const g = el('g', { transform: `rotate(${h * 30} 200 200)` }, indices);
+    const xs = h === 0 ? [194, 202] : [197.5];
+    const w = h === 0 ? 4 : 5;
+    xs.forEach(x => el('rect', {
+      x, y: 42, width: w, height: 30, rx: 1,
+      fill: 'url(#baton)', stroke: 'rgba(0,0,0,.25)', 'stroke-width': .4
+    }, g));
+  }
+  for (let i = 0; i < 60; i++) {
+    if (i % 5 === 0) continue;
+    el('line', {
+      x1: 200, y1: 35, x2: 200, y2: 38.5,
+      stroke: '#707070', 'stroke-width': .8,
+      transform: `rotate(${i * 6} 200 200)`
+    }, indices);
+  }
+
+  // 서브다이얼 눈금 (0–100 = 1/100초)
+  const subTicks = document.getElementById('subTicks');
+  for (let i = 0; i < 20; i++) {
+    el('line', {
+      x1: 200, y1: 234, x2: 200, y2: i % 4 === 0 ? 239 : 237,
+      stroke: '#6a6a6a', 'stroke-width': i % 4 === 0 ? .9 : .6,
+      transform: `rotate(${i * 18} 200 282)`
+    }, subTicks);
+  }
+  [0, 20, 40, 60, 80].forEach((n, i) => {
+    const a = i * 72 * Math.PI / 180;
+    const t = el('text', {
+      x: 200 + 36 * Math.sin(a), y: 282 - 36 * Math.cos(a) + 2.5,
+      'text-anchor': 'middle', 'font-size': 7, fill: '#555',
+      'font-family': 'Helvetica Neue, Arial, sans-serif'
+    }, subTicks);
+    t.textContent = n;
+  });
+
+  // 날짜창: 오늘 날짜, 1분마다 갱신
+  const dateText = document.getElementById('dateText');
+  function updateDate() { dateText.textContent = new Date().getDate(); }
+  updateDate();
+  setInterval(updateDate, 60000);
+
+  // ---------- 스탑워치 로직 ----------
+  const digital = document.getElementById('digital');
+  const startBtn = document.getElementById('startBtn');
+  const lapBtn = document.getElementById('lapBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const lapsEl = document.getElementById('laps');
+  const hourHand = document.getElementById('hourHand');
+  const minuteHand = document.getElementById('minuteHand');
+  const secondHand = document.getElementById('secondHand');
+  const subHand = document.getElementById('subHand');
+  const moonDisc = document.getElementById('moonDisc');
+
+  let running = false;
+  let startTime = 0;   // 현재 구간 시작 시각
+  let elapsed = 0;     // 정지 전까지 누적된 시간(ms)
+  let lapStart = 0;    // 마지막 랩 시점의 총 경과 시간
+  let laps = [];
+  let rafId = null;
+  let sessionId = null;  // 대시보드에 저장되는 현재 세션 id (시작 시각)
+
+  // 세션 기록: dashboard.html이 같은 localStorage 키를 읽는다
+  const STORE_KEY = 'utm-stopwatch-sessions';
+  function saveSession() {
+    if (sessionId === null || now() === 0) return;
+    try {
+      const list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+      const rec = { id: sessionId, start: sessionId, duration: Math.round(now()), laps: laps.slice().reverse().map(Math.round) };
+      const i = list.findIndex(s => s.id === sessionId);
+      if (i >= 0) list[i] = rec; else list.push(rec);
+      localStorage.setItem(STORE_KEY, JSON.stringify(list));
+    } catch (e) {}
+  }
+
+  function now() {
+    return running ? elapsed + (performance.now() - startTime) : elapsed;
+  }
+
+  function format(ms) {
+    const totalCs = Math.floor(ms / 10);
+    const cs = totalCs % 100;
+    const totalSec = Math.floor(totalCs / 100);
+    const s = totalSec % 60;
+    const m = Math.floor(totalSec / 60) % 60;
+    const h = Math.floor(totalSec / 3600);
+    const pad = n => String(n).padStart(2, '0');
+    const main = (h > 0 ? h + ':' : '') + pad(m) + ':' + pad(s);
+    return { main, cs: '.' + pad(cs) };
+  }
+
+  // 시계 바늘: 현재 시각 / 문 디스크: 실제 달의 위상
+  const SYNODIC = 29.530588853;                       // 삭망월(일)
+  const NEW_MOON_REF = Date.UTC(2000, 0, 6, 18, 14);  // 기준 삭(新月)
+  function renderClock() {
+    const d = new Date();
+    const sec = d.getSeconds() + d.getMilliseconds() / 1000;
+    const min = d.getMinutes() + sec / 60;
+    const hr = d.getHours() % 12 + min / 60;
+    secondHand.setAttribute('transform', `rotate(${sec * 6} 200 200)`);
+    minuteHand.setAttribute('transform', `rotate(${min * 6} 200 200)`);
+    hourHand.setAttribute('transform', `rotate(${hr * 30} 200 200)`);
+
+    // 달이 두 개라 디스크 반 바퀴 = 한 삭망월. 90° = 삭(달이 숨음), 180° = 보름
+    const age = (((d.getTime() - NEW_MOON_REF) / 86400000) % SYNODIC + SYNODIC) % SYNODIC;
+    moonDisc.setAttribute('transform', `rotate(${90 + age / SYNODIC * 180} 200 302)`);
+  }
+
+  // 스탑워치: 디지털 표시 + 서브다이얼 1/100초 포인터
+  function render() {
+    const t = now();
+    const f = format(t);
+    digital.innerHTML = f.main + '<span class="cs">' + f.cs + '</span>';
+    subHand.setAttribute('transform', `rotate(${(t % 1000) * 0.36} 200 282)`);
+  }
+
+  function tick() {
+    renderClock();
+    if (running) render();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function toggle() {
+    if (running) {
+      elapsed = now();
+      running = false;
+      saveSession();
+    } else {
+      if (sessionId === null) sessionId = Date.now();
+      startTime = performance.now();
+      running = true;
+    }
+    render();
+    updateButtons();
+  }
+
+  function lap() {
+    if (!running) return;
+    const total = now();
+    laps.unshift(total - lapStart);
+    lapStart = total;
+    renderLaps();
+    saveSession();
+  }
+
+  function reset() {
+    if (running) return;
+    saveSession();
+    sessionId = null;
+    elapsed = 0;
+    lapStart = 0;
+    laps = [];
+    render();
+    renderLaps();
+    updateButtons();
+  }
+
+  function renderLaps() {
+    lapsEl.innerHTML = '';
+    if (laps.length === 0) return;
+    const min = Math.min(...laps);
+    const max = Math.max(...laps);
+    laps.forEach((ms, i) => {
+      const li = document.createElement('li');
+      let tag = '';
+      if (laps.length > 2) {
+        if (ms === min) { li.className = 'best'; tag = '<span class="tag">Fastest</span>'; }
+        else if (ms === max) { li.className = 'worst'; tag = '<span class="tag">Slowest</span>'; }
+      }
+      const f = format(ms);
+      li.innerHTML = '<span>Lap ' + (laps.length - i) + tag + '</span><span>' + f.main + f.cs + '</span>';
+      lapsEl.appendChild(li);
+    });
+  }
+
+  function updateButtons() {
+    startBtn.textContent = running ? 'Stop' : (elapsed > 0 ? 'Resume' : 'Start');
+    lapBtn.disabled = !running;
+    resetBtn.disabled = running || elapsed === 0;
+  }
+
+  startBtn.addEventListener('click', toggle);
+  document.getElementById('crown').addEventListener('click', toggle);
+  lapBtn.addEventListener('click', lap);
+  resetBtn.addEventListener('click', reset);
+  window.addEventListener('pagehide', saveSession);
+
+  document.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    if (e.code === 'Space') { e.preventDefault(); toggle(); }
+    else if (e.code === 'KeyL') lap();
+    else if (e.code === 'KeyR') reset();
+  });
+
+  render();
+  tick();
+</script>
+</body>
+</html>
